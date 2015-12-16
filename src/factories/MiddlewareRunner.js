@@ -3,15 +3,13 @@
  */
 import _ from 'lodash';
 
-const session = {};
-
 function reqFactory(params = {}) {
   return {
     params,
     param(path) {
       return _.get(params, path);
     },
-    session
+    session: MiddlewareRunner.session
   };
 }
 
@@ -23,6 +21,12 @@ function resFactory(syncHandler) {
   }, data);
 }
 
+/**
+ *
+ * @param options
+ * @returns {{}}
+ * @constructor
+ */
 function MiddlewareRunner(options = {}) {
   const middlewareRunner = {};
 
@@ -40,6 +44,10 @@ function MiddlewareRunner(options = {}) {
   return middlewareRunner;
 }
 
+/**
+ *
+ * @type {{req: boolean, res: boolean, parallel: boolean, extendResWithResolvedData: boolean, resFactory: resFactory, reqFactory: reqFactory}}
+ */
 MiddlewareRunner.defaults = {
   req: true,
   res: false,
@@ -49,8 +57,19 @@ MiddlewareRunner.defaults = {
   reqFactory
 };
 
+/**
+ *
+ * @type {{}}
+ */
+MiddlewareRunner.session = {};
+
 MiddlewareRunner.prototype = {
 
+  /**
+   *
+   * @param middlewareNames
+   * @param data
+   */
   run(middlewareNames = [], data = {}) {
     if (typeof middlewareNames === 'string') {
       middlewareNames = [middlewareNames];
@@ -60,6 +79,19 @@ MiddlewareRunner.prototype = {
       return runParallel.call(this, middlewareNames, data);
     } else {
       return runSequence.call(this, middlewareNames, data);
+    }
+  },
+
+  /**
+   *
+   * @param name
+   * @param middleware
+   */
+  add(name, middleware) {
+    if (typeof name === 'string' && typeof middleware === 'function') {
+      _.set(this.middleware, name, middleware);
+    } else if (typeof name === 'object' && !Array.isArray(name)) {
+      _.extend(this.middleware, name);
     }
   }
 
