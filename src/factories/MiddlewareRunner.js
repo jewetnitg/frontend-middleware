@@ -15,10 +15,14 @@ function reqFactory(params = {}) {
 
 function resFactory(syncHandler) {
   return _.extend({
-    sync(data) {
-      syncHandler(data);
+    sync(_data) {
+      if (typeof syncHandler !== 'function') {
+        throw new Error(`Can't sync, sync not implemented`);
+      }
+
+      syncHandler(_data);
     }
-  }, data);
+  });
 }
 
 /**
@@ -70,15 +74,15 @@ MiddlewareRunner.prototype = {
    * @param middlewareNames
    * @param data
    */
-  run(middlewareNames = [], data = {}) {
+  run(middlewareNames = [], data = {}, sync) {
     if (typeof middlewareNames === 'string') {
       middlewareNames = [middlewareNames];
     }
 
     if (this.parallel) {
-      return runParallel.call(this, middlewareNames, data);
+      return runParallel.call(this, middlewareNames, data, sync);
     } else {
-      return runSequence.call(this, middlewareNames, data);
+      return runSequence.call(this, middlewareNames, data, sync);
     }
   },
 
@@ -97,10 +101,14 @@ MiddlewareRunner.prototype = {
 
 };
 
-function runParallel(middlewareNames, data = {}) {
+function runParallel(middlewareNames, data = {}, sync) {
   const promises = [];
   const req = this.req ? this.reqFactory(data) : null;
-  const res = this.res ? this.resFactory() : null;
+  const res = this.res ? this.resFactory(this.sync) : null;
+
+  if (this.res) {
+    res.sync = sync || res.sync;
+  }
 
   _.each(middlewareNames, (name) => {
     const invert = name[0] === '!';
@@ -135,12 +143,16 @@ function runParallel(middlewareNames, data = {}) {
   return Promise.all(promises);
 }
 
-function runSequence(middlewareNames, data = {}, stateObj = false) {
+function runSequence(middlewareNames, data = {}, sync, stateObj = false) {
   stateObj = stateObj || {
       index: 0,
       req: this.req ? this.reqFactory(data) : null,
-      res: this.res ? this.resFactory() : null
+      res: this.res ? this.resFactory(this.sync) : null
     };
+
+  if (this.res) {
+    stateObj.res.sync = sync || stateObj.res.sync;
+  }
 
   if (!middlewareNames.length) {
     return Promise.resolve(stateObj.res);
@@ -170,7 +182,7 @@ function runSequence(middlewareNames, data = {}, stateObj = false) {
           return Promise.resolve(stateObj.res);
         } else {
           stateObj.index++;
-          return runSequence.call(this, middlewareNames, data, stateObj);
+          return runSequence.call(this, middlewareNames, data, sync, stateObj);
         }
       }
     }, (data) => {
