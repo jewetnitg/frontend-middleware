@@ -16,7 +16,31 @@ function reqFactory(params = {}) {
 
 // @todo refactor to separate file
 function resFactory() {
+  const destruct = [];
   return {
+
+    set destruct(cb) {
+      destruct.push(cb);
+    },
+
+    get destruct() {
+      return destruct;
+    },
+
+    destroy() {
+      this.sync = _.noop;
+
+      while (destruct.length) {
+        const cb = destruct.pop();
+
+        if (typeof cb.stop === 'function') {
+          cb.stop();
+        } else if (typeof cb === 'function') {
+          cb();
+        }
+      }
+    },
+
     sync() {
       throw new Error(`Can't sync, sync not implemented`);
     }
