@@ -3,6 +3,7 @@
  */
 import _ from 'lodash';
 
+// @todo refactor to separate file
 function reqFactory(params = {}) {
   return {
     params,
@@ -13,20 +14,18 @@ function reqFactory(params = {}) {
   };
 }
 
-function resFactory(syncHandler) {
-  return _.extend({
-    sync(_data) {
-      if (typeof syncHandler !== 'function') {
-        throw new Error(`Can't sync, sync not implemented`);
-      }
-
-      syncHandler(_data);
+// @todo refactor to separate file
+function resFactory() {
+  return {
+    sync() {
+      throw new Error(`Can't sync, sync not implemented`);
     }
-  });
+  };
 }
 
 /**
  *
+ * @todo refactor to use FactoryFactory
  * @param options
  * @returns {{}}
  * @constructor
@@ -73,16 +72,18 @@ MiddlewareRunner.prototype = {
    *
    * @param middlewareNames
    * @param data
+   * @param {Object} [reqExtendObj={}] Object to extend the req object with
+   * @param {Object} [resExtendObj={}] Object to extend the res object with
    */
-  run(middlewareNames = [], data = {}, sync) {
+  run(middlewareNames = [], data = {}, reqExtendObj = {}, resExtendObj = {}) {
     if (typeof middlewareNames === 'string') {
       middlewareNames = [middlewareNames];
     }
 
     if (this.parallel) {
-      return runParallel.call(this, middlewareNames, data, sync);
+      return runParallel.call(this, middlewareNames, data, reqExtendObj, resExtendObj);
     } else {
-      return runSequence.call(this, middlewareNames, data, sync);
+      return runSequence.call(this, middlewareNames, data, reqExtendObj, resExtendObj);
     }
   },
 
@@ -101,13 +102,19 @@ MiddlewareRunner.prototype = {
 
 };
 
-function runParallel(middlewareNames, data = {}, sync) {
+// @todo refactor
+function runParallel(middlewareNames, data = {}, reqExtendObj = {}, resExtendObj = {}) {
   const promises = [];
   const req = this.req ? this.reqFactory(data) : null;
-  const res = this.res ? this.resFactory(this.sync) : null;
+  const res = this.res ? this.resFactory() : null;
 
-  if (this.res) {
-    res.sync = sync || res.sync;
+  if (this.req && reqExtendObj) {
+    _.extend(req, reqExtendObj);
+  }
+
+  if (this.res && resExtendObj) {
+    _.extend(res, resExtendObj);
+    res.sync = res.sync || this.sync;
   }
 
   _.each(middlewareNames, (name) => {
@@ -143,15 +150,23 @@ function runParallel(middlewareNames, data = {}, sync) {
   return Promise.all(promises);
 }
 
-function runSequence(middlewareNames, data = {}, sync, stateObj = false) {
+// @todo refactor
+function runSequence(middlewareNames, data = {}, reqExtendObj = {}, resExtendObj = {}, stateObj = false) {
   stateObj = stateObj || {
       index: 0,
       req: this.req ? this.reqFactory(data) : null,
-      res: this.res ? this.resFactory(this.sync) : null
+      res: this.res ? this.resFactory() : null
     };
 
-  if (this.res) {
-    stateObj.res.sync = sync || stateObj.res.sync;
+  if (stateObj.index === 0) {
+    if (this.req && reqExtendObj) {
+      _.extend(stateObj.req, reqExtendObj);
+    }
+
+    if (this.res && resExtendObj) {
+      resExtendObj.sync = resExtendObj.sync || this.sync.bind(this);
+      _.extend(stateObj.res, resExtendObj);
+    }
   }
 
   if (!middlewareNames.length) {
@@ -182,7 +197,7 @@ function runSequence(middlewareNames, data = {}, sync, stateObj = false) {
           return Promise.resolve(stateObj.res);
         } else {
           stateObj.index++;
-          return runSequence.call(this, middlewareNames, data, sync, stateObj);
+          return runSequence.call(this, middlewareNames, data, reqExtendObj, resExtendObj, stateObj);
         }
       }
     }, (data) => {
