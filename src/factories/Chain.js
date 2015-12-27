@@ -55,6 +55,7 @@ Chain.prototype = {
 
 };
 
+// @todo deprecate
 function executeParallel(middleware, executionContext) {
   return Promise.all(
     _.map(middleware, fn => {

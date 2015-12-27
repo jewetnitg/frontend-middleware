@@ -1,6 +1,10 @@
 import _ from 'lodash';
 import FactoryFactory from 'frontend-factory';
 
+/**
+ * @todo document
+ * @type {Factory}
+ */
 const Request = FactoryFactory({
 
   props(params) {
@@ -15,6 +19,11 @@ const Request = FactoryFactory({
   },
 
   prototype: {
+    /**
+     * @todo document
+     * @param key
+     * @returns {String|undefined}
+     */
     param(key) {
       return _.get(this.params, key);
     }
@@ -22,6 +31,7 @@ const Request = FactoryFactory({
 
 });
 
+// @todo refactor to defaults
 Request.session = {};
 
 export default Request;

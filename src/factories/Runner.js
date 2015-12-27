@@ -4,6 +4,10 @@ import FactoryFactory from 'frontend-factory';
 import Chain from './Chain';
 import Request from './Request';
 
+/**
+ * @todo document
+ * @class Runner
+ */
 const Runner = FactoryFactory({
 
   defaults: {
@@ -20,6 +24,15 @@ const Runner = FactoryFactory({
 
   prototype: {
 
+    /**
+     * @todo document
+     * @param middleware
+     * @param params
+     * @param data
+     * @param sync
+     * @param destruct
+     * @returns {*|Promise}
+     */
     execute(middleware = [], params = {}, data = {}, sync, destruct) {
       const chain = Chain({
         runner: this,
@@ -29,8 +42,14 @@ const Runner = FactoryFactory({
       return chain.execute(params, data, sync, destruct);
     },
 
-    // @todo test
-    // @todo refactor?
+    /**
+     * @todo document
+     * @todo test
+     * @todo refactor?
+     * @param options
+     * @param fn
+     * @param path
+     */
     add(options = {}, fn, path = []) {
       if (typeof options === 'string' && typeof fn === 'function') {
         path.push(options);

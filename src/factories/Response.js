@@ -27,10 +27,17 @@ const Response = FactoryFactory({
 
     const res = {
 
+      /**
+       * @todo document
+       * @type {Function}
+       */
       get destruct() {
         return destruct;
       },
 
+      /**
+       * @todo document
+       */
       set destruct(value) {
         // @todo test
         if (value !== destruct) {
@@ -40,6 +47,9 @@ const Response = FactoryFactory({
         return value;
       },
 
+      /**
+       * @todo document
+       */
       set sync(value) {
         // @todo test
         if (value !== sync) {
@@ -49,6 +59,10 @@ const Response = FactoryFactory({
         return value;
       },
 
+      /**
+       * @todo document
+       * @type {Function}
+       */
       get sync() {
         return sync;
       },
@@ -65,6 +79,10 @@ const Response = FactoryFactory({
 
   prototype: {
 
+    /**
+     * @todo document
+     * @returns {*}
+     */
     toObject() {
       return _.omit(this, _.methods(this));
     }
